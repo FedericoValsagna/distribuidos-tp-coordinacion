@@ -7,3 +7,4 @@ def serialize(message):
 
 def deserialize(message):
     return json.loads(message.decode("utf-8"))
+

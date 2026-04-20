@@ -18,6 +18,11 @@ class SumFilter:
         self.input_queue = middleware.MessageMiddlewareQueueRabbitMQ(
             MOM_HOST, INPUT_QUEUE
         )
+        print(f"Previous queue name: {_sum_queue_name(_previous_sum())}")
+        print(f"Next queue name: {_sum_queue_name(_next_sum())}")
+        self.sum_input_queue = middleware.MessageMiddlewareQueueRabbitMQ(MOM_HOST, _sum_queue_name(_previous_sum()))
+        self.sum_output_queue = middleware.MessageMiddlewareQueueRabbitMQ(MOM_HOST, _sum_queue_name(ID))
+
         self.data_output_exchanges = []
         for i in range(AGGREGATION_AMOUNT):
             data_output_exchange = middleware.MessageMiddlewareExchangeRabbitMQ(
@@ -26,8 +31,15 @@ class SumFilter:
             self.data_output_exchanges.append(data_output_exchange)
         self.clients = {}
 
+        self.client_flags = {}
+        
+
     def _process_data(self, fruit, amount, client_id):
         logging.info(f"Process data")
+        # If client is new it adds it to the flags, otherwise it doesn't do anything
+        self.client_flags[client_id] = self.client_flags.get(client_id, False)
+
+
         amount_by_fruit = self.clients.get(client_id, {})
         amount_by_fruit[fruit] = amount_by_fruit.get(
             fruit, fruit_item.FruitItem(fruit, 0)
@@ -44,11 +56,15 @@ class SumFilter:
                         [final_fruit_item.fruit, final_fruit_item.amount, client_id]
                     )
                 )
+        
+        self.sum_output_queue.send(message_protocol.internal.serialize([client_id]))
+        self.client_flags[client_id] = True
+        print(f"MSG | Sending | Internal queue | '{[client_id]}")
 
+    def send_eof(self, client_id):
         logging.info(f"Broadcasting EOF message for {client_id}")
         for data_output_exchange in self.data_output_exchanges:
             data_output_exchange.send(message_protocol.internal.serialize([client_id]))
-
 
     def process_data_messsage(self, message, ack, nack):
         fields = message_protocol.internal.deserialize(message)
@@ -56,10 +72,22 @@ class SumFilter:
             self._process_data(*fields)
         else:
             self._process_eof(*fields)
+
+        ack()
+
+    def process_internal_sum_message(self, message, ack, nack):
+        fields = message_protocol.internal.deserialize(message)
+        print(f"MSG | Incoming | Internal queue | '{fields}'")
+        client_id = fields[0]
+        if self.client_flags[client_id]:
+            self.send_eof(client_id)
+        else:
+            self._process_eof(*fields)
         ack()
 
     def start(self):
         self.input_queue.start_consuming(self.process_data_messsage)
+        self.sum_input_queue.start_consuming(self.process_internal_sum_message)
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -67,6 +95,20 @@ def main():
     sum_filter.start()
     return 0
 
+def _previous_sum():
+    previous_sum = int(ID) - 1 
+    if previous_sum < 0:
+        previous_sum = SUM_AMOUNT - 1
+    return previous_sum
+
+def _next_sum():
+    next_sum = int(ID) + 1
+    if next_sum > SUM_AMOUNT - 1:
+        next_sum = 0
+    return next_sum
+
+def _sum_queue_name(sum_name):
+    return f"{SUM_PREFIX}_{sum_name}"
 
 if __name__ == "__main__":
     main()
