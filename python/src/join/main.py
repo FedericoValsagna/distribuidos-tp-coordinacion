@@ -36,7 +36,7 @@ class JoinFilter:
             current_top.append(fruit)
         
         self.clients[client_id] = (top_received, current_top)
-        if top_received == SUM_AMOUNT:
+        if top_received == AGGREGATION_AMOUNT:
             current_top.sort(key=sort_func)
             fruit_top = list(current_top[-TOP_SIZE:])
             fruit_top.sort(key=sort_func)
