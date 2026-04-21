@@ -28,7 +28,7 @@ class AggregationFilter:
         self.fruit_top = []
 
     def _process_data(self, fruit, amount, client_id):
-        logging.info("Processing data message")
+        logging.info(f"MSG | {fruit}:{amount} | {client_id}")
         fruit_top = self.clients.get(client_id, [])
         for i in range(len(fruit_top)):
             if fruit_top[i].fruit == fruit:
@@ -37,14 +37,27 @@ class AggregationFilter:
                     fruit, amount
                 )
                 self.clients[client_id] = fruit_top
+
                 return
         bisect.insort(fruit_top, fruit_item.FruitItem(fruit, amount))
+        # fruit_top.sort(reverse=True)
         self.clients[client_id] = fruit_top
+        
+
+        # # Debug purpouse
+        # fruit_top = list(
+        #     map(
+        #         lambda fruit_item: (fruit_item.fruit, fruit_item.amount),
+        #         self.clients[client_id],    
+        #     )
+        # )
+        # print(f"Current top list from {client_id}: {fruit_top}")
 
     def _process_eof(self, client_id):
-        logging.info("Received EOF")
+        logging.info(f"EOF | {client_id}")
         logging.info("Sending Top")
         fruit_top = self.clients[client_id]
+        fruit_top.sort()
         fruit_chunk = list(fruit_top[-TOP_SIZE:])
         fruit_chunk.reverse()
         fruit_top = list(
@@ -54,8 +67,9 @@ class AggregationFilter:
             )
         )
         fruit_top.append(client_id)
+        print(f"SENDING TOP LIST | {client_id} | {fruit_top}")
         self.output_queue.send(message_protocol.internal.serialize(fruit_top))
-        del self.clients[client_id]
+        # del self.clients[client_id]
 
     def process_messsage(self, message, ack, nack):
         logging.info("Process message")
@@ -77,5 +91,7 @@ def main():
     return 0
 
 
+# def cmp(a: fruit_item, b:fruit_item):
+#     return a > b
 if __name__ == "__main__":
     main()
