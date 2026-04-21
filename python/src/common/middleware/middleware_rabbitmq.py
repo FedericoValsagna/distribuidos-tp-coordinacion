@@ -62,8 +62,10 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         self.channel.close()
         self.connection.close()
     
-    def send(self, message):
-        self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.routing_keys[0], body=message)
+    def send(self, message, routing_key=None):
+        if routing_key == None:
+            routing_key = self.routing_keys[0]
+        self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
 
     def close(self):
         if self.channel != None:

@@ -3,6 +3,7 @@ import logging
 import threading
 
 from common import middleware, message_protocol, fruit_item
+from common.fruit_item.fruit_item import FruitItem
 
 ID = int(os.environ["ID"])
 MOM_HOST = os.environ["MOM_HOST"]
@@ -19,8 +20,6 @@ class SumFilter:
         self.input_queue = middleware.MessageMiddlewareQueueRabbitMQ(
             MOM_HOST, INPUT_QUEUE
         )
-        print(f"Previous queue name: {_sum_queue_name(_previous_sum())}")
-        print(f"Next queue name: {_sum_queue_name(ID)}")
         self.sum_input_queue = middleware.MessageMiddlewareQueueRabbitMQ(MOM_HOST, _sum_queue_name(_previous_sum()))
         self.sum_output_queue = middleware.MessageMiddlewareQueueRabbitMQ(MOM_HOST, _sum_queue_name(ID))
 
@@ -50,16 +49,13 @@ class SumFilter:
         amount_by_fruit = self.clients[client_id]
         logging.info(f"AGG | {client_id}")
         for final_fruit_item in amount_by_fruit.values():
-            for data_output_exchange in self.data_output_exchanges:
-                data_output_exchange.send(
-                    message_protocol.internal.serialize(
-                        [final_fruit_item.fruit, final_fruit_item.amount, client_id]
-                    )
+            self.data_output_exchanges[corresponding_exchange_from_fruit(final_fruit_item)].send(
+                message_protocol.internal.serialize(
+                    [final_fruit_item.fruit, final_fruit_item.amount, client_id]
                 )
-        
+            )
         self.sum_output_queue.send(message_protocol.internal.serialize([client_id]))
         self.client_flags[client_id] = True
-        print(f"MSG | Sending | Internal queue | '{[client_id]}")
 
     def send_eof(self, client_id):
         logging.info(f"EOF | {client_id}")
@@ -113,6 +109,14 @@ def _previous_sum():
 
 def _sum_queue_name(sum_name):
     return f"{SUM_PREFIX}_{sum_name}"
+
+
+def corresponding_exchange_from_fruit(fruit: FruitItem):
+    word = fruit.fruit
+    first_letter = word[0]
+    letter_as_number = ord(first_letter) - 65 
+    exchange_number = letter_as_number % AGGREGATION_AMOUNT
+    return exchange_number
 
 if __name__ == "__main__":
     main()
