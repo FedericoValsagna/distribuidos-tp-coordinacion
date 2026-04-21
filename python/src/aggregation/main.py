@@ -17,7 +17,6 @@ TOP_SIZE = int(os.environ["TOP_SIZE"])
 class AggregationFilter:
 
     def __init__(self):
-        self.remaining_clients = 3
         self.input_exchange = middleware.MessageMiddlewareExchangeRabbitMQ(
             MOM_HOST, AGGREGATION_PREFIX, [f"{AGGREGATION_PREFIX}_{ID}"]
         )
@@ -78,8 +77,5 @@ def main():
     aggregation_filter.start()
     return 0
 
-
-# def cmp(a: fruit_item, b:fruit_item):
-#     return a > b
 if __name__ == "__main__":
     main()
