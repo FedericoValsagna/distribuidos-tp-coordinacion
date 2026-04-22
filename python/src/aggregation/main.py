@@ -1,6 +1,7 @@
 import os
 import logging
 import bisect
+import signal
 
 from common import middleware, message_protocol, fruit_item
 
@@ -25,7 +26,13 @@ class AggregationFilter:
         )
         self.clients = {}
         self.fruit_top = []
+        self._prev_sigterm_handler = signal.signal(signal.SIGTERM, self.handle_sigterm)
 
+
+    def handle_sigterm(self):
+        self.input_exchange.close()
+        self.output_queue.close()
+        
     def _process_data(self, fruit, amount, client_id):
         logging.info(f"MSG | {fruit}:{amount} | {client_id}")
         fruit_top = self.clients.get(client_id, [])

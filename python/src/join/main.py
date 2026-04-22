@@ -1,5 +1,6 @@
 import os
 import logging
+import signal
 
 from common import middleware, message_protocol, fruit_item
 
@@ -23,6 +24,11 @@ class JoinFilter:
         self.output_queue = middleware.MessageMiddlewareQueueRabbitMQ(
             MOM_HOST, OUTPUT_QUEUE
         )
+        self._prev_sigterm_handler = signal.signal(signal.SIGTERM, self.handle_sigterm)
+    
+    def handle_sigterm(self):
+        self.input_queue.close()
+        self.output_queue.close()
 
     def process_messsage(self, message, ack, nack):
         logging.info("Received top")
