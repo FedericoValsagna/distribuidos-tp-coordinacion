@@ -56,6 +56,7 @@ class SumFilter:
             )
         self.sum_output_queue.send(message_protocol.internal.serialize([client_id]))
         self.client_flags[client_id] = True
+        del self.clients[client_id]
 
     def send_eof(self, client_id):
         logging.info(f"EOF | {client_id}")
