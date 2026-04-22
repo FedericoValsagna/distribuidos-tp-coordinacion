@@ -43,6 +43,7 @@ class JoinFilter:
             fruit_top.reverse()
             fruit_top.append(client_id)
             self.output_queue.send(message_protocol.internal.serialize(fruit_top))
+            del self.clients[client_id]
         ack()
 
     def start(self):
