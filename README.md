@@ -9,7 +9,7 @@ End of File:    []                  ->  [UUID]
 Top 3: [[fruta_1, cantidad_1], [fruta_2, cantidad_2], [fruta_3, cantidad_3]]  -> [[fruta_1, cantidad_1], [fruta_2, cantidad_2], [fruta_3, cantidad_3], UUID]
 ```
 ## Coordinacion de Sums
-Ahora sum no solo escucha a la cola principal, sino que además tiene una cola de entrada y otra de salida con otras instancias de sum, formando un anillo entre ellas. La idea es el EOF le llega a una instancia, esta misma manda sus datos a los aggregators y luego no manda el EOF a los aggregators, sino que se lo manda al anillo. Cuando una instancia lo recibe por el anillo procede a mandar los datos calculados y luego se lo pasa a la siguiente instancia del anillo. Eventualmente va a volver a llegar a la primera instancia, y recién ahí se le envía el EOF a los aggregators.
+Ahora sum no solo escucha a la cola principal, sino que además tiene una cola de entrada y otra de salida con otras instancias de sum, formando un anillo entre ellas. La idea es el EOF le llega a una instancia, esta misma manda sus datos a los aggregators y luego no manda el EOF a los aggregators, sino que se lo manda al anillo. Cuando una instancia lo recibe por el anillo procede a mandar los datos calculados y luego se lo pasa a la siguiente instancia del anillo. Eventualmente va a volver a llegar a la primera instancia, y recién ahí se le envía el EOF a los aggregators. A nivel protocolo, se utiliza el mismo mensaje [UUID] en el anillo interno.
 
 ![ ](./imgs/diagrama_sums.png  "Anillo de Sums")
 ![ ](./imgs/anillo_de_sums.png  "Anillo de Sums")
