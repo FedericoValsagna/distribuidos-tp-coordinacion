@@ -26,7 +26,7 @@ class JoinFilter:
         )
         self._prev_sigterm_handler = signal.signal(signal.SIGTERM, self.handle_sigterm)
     
-    def handle_sigterm(self):
+    def handle_sigterm(self, signum, frame):
         self.input_queue.close()
         self.output_queue.close()
 

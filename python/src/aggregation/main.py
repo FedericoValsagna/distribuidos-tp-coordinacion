@@ -29,7 +29,7 @@ class AggregationFilter:
         self._prev_sigterm_handler = signal.signal(signal.SIGTERM, self.handle_sigterm)
 
 
-    def handle_sigterm(self):
+    def handle_sigterm(self, signum, frame):
         self.input_exchange.close()
         self.output_queue.close()
         
@@ -38,12 +38,10 @@ class AggregationFilter:
         fruit_top = self.clients.get(client_id, [])
         for i in range(len(fruit_top)):
             if fruit_top[i].fruit == fruit:
-                ### Comment: Aca me hace mucho ruido que no resorteé la lista. La updatea pero si supera al item siguiente no los intercambia
                 fruit_top[i] = fruit_top[i] + fruit_item.FruitItem(
                     fruit, amount
                 )
                 self.clients[client_id] = fruit_top
-
                 return
         bisect.insort(fruit_top, fruit_item.FruitItem(fruit, amount))
         self.clients[client_id] = fruit_top

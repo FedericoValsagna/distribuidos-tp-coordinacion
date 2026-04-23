@@ -18,35 +18,33 @@ AGGREGATION_PREFIX = os.environ["AGGREGATION_PREFIX"]
 class SumFilter:
     def __init__(self):
 
-        self._prev_sigterm_handler = signal.signal(signal.SIGTERM, self.handle_sigterm)
+        self.clients = {}
+        self.client_flags = {}
+
+        self.sum_thread = threading.Thread(target=self.listen_sum_input_queue)  
         self.lock = threading.Lock()
+
+        self._prev_sigterm_handler = signal.signal(signal.SIGTERM, self.handle_sigterm)
         self.input_queue = middleware.MessageMiddlewareQueueRabbitMQ(
             MOM_HOST, INPUT_QUEUE
         )
         self.sum_input_queue = middleware.MessageMiddlewareQueueRabbitMQ(MOM_HOST, _sum_queue_name(_previous_sum()))
         self.sum_output_queue = middleware.MessageMiddlewareQueueRabbitMQ(MOM_HOST, _sum_queue_name(ID))
-
         self.data_output_exchanges = []
         for i in range(AGGREGATION_AMOUNT):
             data_output_exchange = middleware.MessageMiddlewareExchangeRabbitMQ(
                 MOM_HOST, AGGREGATION_PREFIX, [f"{AGGREGATION_PREFIX}_{i}"]
             )
             self.data_output_exchanges.append(data_output_exchange)
-        self.clients = {}
-
-        self.client_flags = {}
         
-    def handle_sigterm(self):
+    def handle_sigterm(self, signum, frame):
         self.input_queue.close()
         self.sum_input_queue.close()
         self.sum_output_queue.close()
         for exchange in self.data_output_exchanges:
             exchange.close()
-
-        if self.input_thread:
-            self.input_thread.join()
-        if self.sum_thread:
-            self.sum_thread.join()
+        
+        self.sum_thread.join()
 
     def _process_data(self, fruit, amount, client_id):
         logging.info(f"MSG | {client_id} | {fruit}:{amount}")
@@ -98,12 +96,7 @@ class SumFilter:
             ack()
 
     def start(self):
-        self.input_thread = threading.Thread(target=self.listen_input_queue)
-        self.sum_thread = threading.Thread(target=self.listen_sum_input_queue)
-        self.input_thread.start()
         self.sum_thread.start()
-
-    def listen_input_queue(self):
         self.input_queue.start_consuming(self.process_data_messsage)
     
     def listen_sum_input_queue(self):
