@@ -6,6 +6,7 @@ Para identificar a que cliente pertenece cada mensaje se agregó en la clase de 
 ```
 Envio de fruta: [fruta, cantidad]   ->  [fruta, cantidad, UUID]
 End of File:    []                  ->  [UUID]
+Top 3: [[fruta_1, cantidad_1], [fruta_2, cantidad_2], [fruta_3, cantidad_3]]  -> [[fruta_1, cantidad_1], [fruta_2, cantidad_2], [fruta_3, cantidad_3], UUID]
 ```
 ## Coordinacion de Sums
 Ahora sum no solo escucha a la cola principal, sino que además tiene una cola de entrada y otra de salida con otras instancias de sum, formando un anillo entre ellas. La idea es el EOF le llega a una instancia, esta misma manda sus datos a los aggregators y luego no manda el EOF a los aggregators, sino que se lo manda al anillo. Cuando una instancia lo recibe por el anillo procede a mandar los datos calculados y luego se lo pasa a la siguiente instancia del anillo. Eventualmente va a volver a llegar a la primera instancia, y recién ahí se le envía el EOF a los aggregators.
@@ -18,7 +19,7 @@ Internamente cada instancia tiene un hilo separado para escuchar el anillo, y se
 A pesar de Python contar con el mutex general del GIL, se tiene en cuenta que al tener las operaciones bloqueantes de las queues de rabbitmq, las cuales Pika menciona que no son thread safe (https://pika.readthedocs.io/en/stable/faq.html) se pueden dar casos reales de concurrencia y race conditions que el sistema debe solucionar que exceden al GIL.
 
 ## Uso de los Aggregators
-Se separan las frutas tomando su primera letra, convirtiendola a número y tomando módulo sobre la cantidad de aggregators, de ahí que se elige a cual aggregator enviarlo. Esto garantiza que todas las operaciones de una fruta las maneje siempre el mismo aggregator. Respecto al EOF, se optó que el Sum lo broadcasteé a todos las instancias de Aggregators, haciendo que no sea necesario el anillo en este caso. Una vez recibido el EOF, cada aggregator arma su top 3 local de sus frutas y se lo envía al join, cuando el join recibe todos los tops de los aggregators arma el top 3 final.
+Se separan las frutas convirtiendo sus letras a numero, sumandolas y tomando módulo sobre la cantidad de aggregators, de ahí que se elige a cual aggregator enviarlo. Esto garantiza que todas las operaciones de una fruta las maneje siempre el mismo aggregator. Respecto al EOF, se optó que el Sum lo broadcasteé a todos las instancias de Aggregators, haciendo que no sea necesario el anillo en este caso. Una vez recibido el EOF, cada aggregator arma su top 3 local de sus frutas y se lo envía al join, cuando el join recibe todos los tops de los aggregators arma el top 3 final.
 # Trabajo Práctico - Coordinación
 
 En este trabajo se busca familiarizar a los estudiantes con los desafíos de la coordinación del trabajo y el control de la complejidad en sistemas distribuidos. Para tal fin se provee un esqueleto de un sistema de control de stock de una verdulería y un conjunto de escenarios de creciente grado de complejidad y distribución que demandarán mayor sofisticación en la comunicación de las partes involucradas.
