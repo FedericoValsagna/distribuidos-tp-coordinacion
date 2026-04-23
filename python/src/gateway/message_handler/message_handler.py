@@ -16,6 +16,6 @@ class MessageHandler:
 
     def deserialize_result_message(self, message):
         fields = message_protocol.internal.deserialize(message)
-        if fields[3] != self.client_id:
+        if fields[len(fields) - 1] != self.client_id:
             return None
         return fields[0:len(fields) - 1]     

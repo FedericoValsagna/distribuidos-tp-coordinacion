@@ -48,6 +48,7 @@ class JoinFilter:
             fruit_top.sort(key=sort_func)
             fruit_top.reverse()
             fruit_top.append(client_id)
+            print(message_protocol.internal.serialize(fruit_top))
             self.output_queue.send(message_protocol.internal.serialize(fruit_top))
             del self.clients[client_id]
         ack()
