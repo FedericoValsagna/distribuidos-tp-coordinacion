@@ -1,3 +1,24 @@
+### Ejecución
+No se modificó el makefile, por lo que se ejecuta del mismo modo que se indica en el readme base.
+# Informe
+## Modificacion del protocolo de mensajes
+Para identificar a que cliente pertenece cada mensaje se agregó en la clase de MessageHandler del Cliente la generación de un UUID de tal modo que los mensajes se ven modificados de la siguiente forma:
+```
+Envio de fruta: [fruta, cantidad]   ->  [fruta, cantidad, UUID]
+End of File:    []                  ->  [UUID]
+```
+## Coordinacion de Sums
+Ahora sum no solo escucha a la cola principal, sino que además tiene una cola de entrada y otra de salida con otras instancias de sum, formando un anillo entre ellas. La idea es el EOF le llega a una instancia, esta misma manda sus datos a los aggregators y luego no manda el EOF a los aggregators, sino que se lo manda al anillo. Cuando una instancia lo recibe por el anillo procede a mandar los datos calculados y luego se lo pasa a la siguiente instancia del anillo. Eventualmente va a volver a llegar a la primera instancia, y recién ahí se le envía el EOF a los aggregators.
+
+![ ](./imgs/diagrama_sums.png  "Anillo de Sums")
+![ ](./imgs/anillo_de_sums.png  "Anillo de Sums")
+
+Internamente cada instancia tiene un hilo separado para escuchar el anillo, y se tiene un lock en conjunto de modo tal que si se está procesando un mensaje de la cola principal, no se pueda procesar en paralelo un mensaje de la cola, dado que los mensajes se están procesando de a 1 no se tiene un buffer de mensajes sin procesar que requieran ser procesados antes de procesar el mensaje del anillo.
+
+A pesar de Python contar con el mutex general del GIL, se tiene en cuenta que al tener las operaciones bloqueantes de las queues de rabbitmq, las cuales Pika menciona que no son thread safe (https://pika.readthedocs.io/en/stable/faq.html) se pueden dar casos reales de concurrencia y race conditions que el sistema debe solucionar que exceden al GIL.
+
+## Uso de los Aggregators
+Se separan las frutas tomando su primera letra, convirtiendola a número y tomando módulo sobre la cantidad de aggregators, de ahí que se elige a cual aggregator enviarlo. El End of file se envía a todos los aggregators, por lo que no es necesario tener un mecanismo de sincronización como con los sums. Luego cada aggregator arma su top 3 y se lo envía al join, cuando el join recibe todos los tops de los aggregators arma el top 3 final.
 # Trabajo Práctico - Coordinación
 
 En este trabajo se busca familiarizar a los estudiantes con los desafíos de la coordinación del trabajo y el control de la complejidad en sistemas distribuidos. Para tal fin se provee un esqueleto de un sistema de control de stock de una verdulería y un conjunto de escenarios de creciente grado de complejidad y distribución que demandarán mayor sofisticación en la comunicación de las partes involucradas.
