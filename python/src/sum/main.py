@@ -121,9 +121,10 @@ def _sum_queue_name(sum_name):
 
 def corresponding_exchange_from_fruit(fruit: FruitItem):
     word = fruit.fruit
-    first_letter = word[0]
-    letter_as_number = ord(first_letter) - 65 
-    exchange_number = letter_as_number % AGGREGATION_AMOUNT
+    sum = 0
+    for letter in word:
+        sum += ord(letter)
+    exchange_number = sum % AGGREGATION_AMOUNT
     return exchange_number
 
 if __name__ == "__main__":
