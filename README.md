@@ -2,7 +2,7 @@
 No se modificó el makefile, por lo que se ejecuta del mismo modo que se indica en el readme base.
 # Informe
 ## Modificacion del protocolo de mensajes
-Para identificar a que cliente pertenece cada mensaje se agregó en la clase de MessageHandler del Cliente la generación de un UUID de tal modo que los mensajes se ven modificados de la siguiente forma:
+Para identificar a que cliente pertenece cada mensaje se agregó en la clase de MessageHandler del Gateway la generación de un UUID de tal modo que los mensajes se ven modificados de la siguiente forma:
 ```
 Envio de fruta: [fruta, cantidad]   ->  [fruta, cantidad, UUID]
 End of File:    []                  ->  [UUID]
